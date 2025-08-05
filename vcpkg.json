@@ -1,0 +1,32 @@
+{
+    "name": "file-compressor",
+    "version": "1.0.0",
+    "description": "A modern file compression application with GUI",
+    "homepage": "https://github.com/juanbautistaespino/file-compressor",
+    "dependencies": [
+        {
+            "name": "qt6",
+            "features": [
+                "widgets",
+                "gui",
+                "core"
+            ]
+        },
+        {
+            "name": "zlib"
+        },
+        {
+            "name": "libpng"
+        },
+        {
+            "name": "libjpeg-turbo"
+        }
+    ],
+    "builtin-baseline": "2023-12-14",
+    "overrides": [
+        {
+            "name": "qt6",
+            "version": "6.6.1"
+        }
+    ]
+}
