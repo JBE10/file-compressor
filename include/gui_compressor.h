@@ -24,4 +24,4 @@ private:
     static CompressionResult compressBinaryFile(const std::string &inputPath, const std::string &outputPath);
 };
 
-#endif // GUI_COMPRESSOR_H 
+#endif // GUI_COMPRESSOR_H

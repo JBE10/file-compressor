@@ -53,7 +53,7 @@ private:
     void createResultsSection(QVBoxLayout *mainLayout);
     void createControlButtons(QVBoxLayout *mainLayout);
     void createStatusBar();
-    
+
     void compressFiles();
     void addResultToTable(const CompressionResult &result, const QString &fileName);
     QString formatFileSize(size_t bytes);
@@ -88,4 +88,4 @@ private:
     bool m_isCompressing;
 };
 
-#endif // GUI_MAINWINDOW_H 
+#endif // GUI_MAINWINDOW_H

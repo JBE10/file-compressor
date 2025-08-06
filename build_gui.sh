@@ -29,4 +29,4 @@ if [ $? -eq 0 ]; then
 else
     echo "❌ Build failed!"
     exit 1
-fi 
+fi

@@ -7,15 +7,15 @@
 int main(int argc, char *argv[])
 {
     QApplication app(argc, argv);
-    
+
     // Set application info
     app.setApplicationName("Compresor de Archivos");
     app.setApplicationVersion("2.0");
     app.setOrganizationName("Juan Bautista Espino");
-    
+
     // Set modern dark theme
     app.setStyle(QStyleFactory::create("Fusion"));
-    
+
     QPalette darkPalette;
     darkPalette.setColor(QPalette::Window, QColor(53, 53, 53));
     darkPalette.setColor(QPalette::WindowText, Qt::white);
@@ -30,18 +30,18 @@ int main(int argc, char *argv[])
     darkPalette.setColor(QPalette::Link, QColor(42, 130, 218));
     darkPalette.setColor(QPalette::Highlight, QColor(42, 130, 218));
     darkPalette.setColor(QPalette::HighlightedText, Qt::black);
-    
+
     app.setPalette(darkPalette);
-    
+
     // Create output directory if it doesn't exist
     QDir outputDir("output");
     if (!outputDir.exists()) {
         outputDir.mkpath(".");
     }
-    
+
     // Create and show main window
     MainWindow window;
     window.show();
-    
+
     return app.exec();
-} 
+}
