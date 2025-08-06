@@ -39,6 +39,7 @@ private slots:
 
 private:
     void setupUI();
+    void setupConnections();
     void createFileSelectionSection();
     void createCompressionOptionsSection();
     void createProgressSection();

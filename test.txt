@@ -1,0 +1,26 @@
+Este es un archivo de prueba para demostrar la funcionalidad de compresión.
+
+El compresor de archivos puede comprimir diferentes tipos de archivos:
+- Archivos de texto (.txt, .log, .csv, .json, .xml, .html, .css, .js)
+- Archivos de código fuente (.cpp, .h, .py, .java)
+- Archivos binarios y otros tipos de archivos
+
+La compresión utiliza el algoritmo zlib para lograr una reducción significativa en el tamaño de los archivos.
+
+Características del compresor:
+- Compresión rápida y eficiente
+- Soporte para múltiples tipos de archivo
+- Estadísticas detalladas de compresión
+- Interfaz de línea de comandos simple
+- Compatible con macOS, Linux y Windows
+
+Este archivo contiene texto repetitivo para demostrar la efectividad de la compresión.
+Este archivo contiene texto repetitivo para demostrar la efectividad de la compresión.
+Este archivo contiene texto repetitivo para demostrar la efectividad de la compresión.
+Este archivo contiene texto repetitivo para demostrar la efectividad de la compresión.
+Este archivo contiene texto repetitivo para demostrar la efectividad de la compresión.
+Este archivo contiene texto repetitivo para demostrar la efectividad de la compresión.
+Este archivo contiene texto repetitivo para demostrar la efectividad de la compresión.
+Este archivo contiene texto repetitivo para demostrar la efectividad de la compresión.
+Este archivo contiene texto repetitivo para demostrar la efectividad de la compresión.
+Este archivo contiene texto repetitivo para demostrar la efectividad de la compresión.

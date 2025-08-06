@@ -37,6 +37,8 @@ private:
     CompressionResult compressImage(const QString &inputPath, const QString &outputPath);
     CompressionResult compressPDF(const QString &inputPath, const QString &outputPath);
     CompressionResult compressGeneralFile(const QString &inputPath, const QString &outputPath, const QString &compressionType);
+    CompressionResult compressZip(const QString &inputPath, const QString &outputPath);
+    CompressionResult compressGzip(const QString &inputPath, const QString &outputPath);
 
     // Helper methods
     QString getFileExtension(const QString &filePath) const;

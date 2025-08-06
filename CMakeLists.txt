@@ -5,17 +5,13 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 # Find Qt6
-find_package(Qt6 REQUIRED COMPONENTS Core Widgets Gui)
+find_package(Qt6 REQUIRED COMPONENTS Core Widgets Concurrent)
 
 # Find required libraries
 find_package(PkgConfig REQUIRED)
-pkg_check_modules(LIBPNG REQUIRED libpng)
-pkg_check_modules(JPEG REQUIRED libjpeg)
 pkg_check_modules(ZLIB REQUIRED zlib)
 
 # Include directories
-include_directories(${LIBPNG_INCLUDE_DIRS})
-include_directories(${JPEG_INCLUDE_DIRS})
 include_directories(${ZLIB_INCLUDE_DIRS})
 
 # Source files
@@ -35,27 +31,35 @@ set(HEADERS
 # Create executable
 add_executable(FileCompressor ${SOURCES} ${HEADERS})
 
+# Set include directories for the target
+target_include_directories(FileCompressor PRIVATE include)
+
 # Link libraries
-target_link_libraries(FileCompressor
+target_link_libraries(FileCompressor PRIVATE
     Qt6::Core
     Qt6::Widgets
-    Qt6::Gui
-    ${LIBPNG_LIBRARIES}
-    ${JPEG_LIBRARIES}
+    Qt6::Concurrent
     ${ZLIB_LIBRARIES}
 )
 
+# Add system frameworks for macOS
+if(APPLE)
+    target_link_libraries(FileCompressor PRIVATE
+        "-framework Cocoa"
+        "-framework OpenGL"
+        "-framework IOKit"
+        "-framework CoreVideo"
+        "-framework Carbon"
+    )
+endif()
+
 # Set compiler flags
 target_compile_options(FileCompressor PRIVATE
-    ${LIBPNG_CFLAGS_OTHER}
-    ${JPEG_CFLAGS_OTHER}
     ${ZLIB_CFLAGS_OTHER}
 )
 
 # Set linker flags
 target_link_options(FileCompressor PRIVATE
-    ${LIBPNG_LDFLAGS}
-    ${JPEG_LDFLAGS}
     ${ZLIB_LDFLAGS}
 )
 
