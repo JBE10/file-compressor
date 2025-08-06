@@ -13,4 +13,4 @@ fi
 
 # Activar el entorno virtual y ejecutar la aplicación
 source venv/bin/activate
-python main.py 
+python main.py

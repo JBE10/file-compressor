@@ -13,4 +13,4 @@ if not exist "venv" (
 REM Activar el entorno virtual y ejecutar la aplicación
 call venv\Scripts\activate
 python main.py
-pause 
+pause
