@@ -1,0 +1,24 @@
+CXX = clang++
+CXXFLAGS = -std=c++17 -Wall -Wextra -O2
+LDFLAGS = -lz
+
+TARGET = interactive_compressor
+SOURCE = src/interactive_compressor.cpp
+
+.PHONY: all clean run
+
+all: $(TARGET)
+
+$(TARGET): $(SOURCE)
+	$(CXX) $(CXXFLAGS) -o $(TARGET) $(SOURCE) $(LDFLAGS)
+
+clean:
+	rm -f $(TARGET)
+
+run: $(TARGET)
+	./$(TARGET)
+
+install: $(TARGET)
+	@echo "🚀 Compresor de Archivos Interactivo compilado exitosamente!"
+	@echo "📝 Para ejecutar: ./$(TARGET)"
+	@echo "�� O usa: make run"

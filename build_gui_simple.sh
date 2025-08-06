@@ -8,7 +8,7 @@ cd build_gui_simple
 
 # Create a simple .pro file for qmake
 cat > SimpleGUICompressor.pro << 'EOF'
-QT += core widgets
+QT += core widgets concurrent
 CONFIG += c++17
 
 TARGET = gui_compressor_simple
@@ -26,7 +26,7 @@ INCLUDEPATH += ../include
 # Disable AGL framework
 macx {
     LIBS += -lz
-    QMAKE_LFLAGS += -framework Cocoa -framework OpenGL
+    QMAKE_LFLAGS += -framework Cocoa -framework OpenGL -framework QtConcurrent
 }
 
 # Linux specific
