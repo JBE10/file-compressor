@@ -48,6 +48,7 @@ private:
     void displayResults(const QList<CompressionResult> &results);
     void updateProgressBar(const QString &message, int percentage);
     void enableControls(bool enable);
+    void updateFileList();
 
     // UI Components
     QWidget *m_centralWidget;
