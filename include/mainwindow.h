@@ -15,9 +15,6 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QThread>
-#include <QFuture>
-#include <QFutureWatcher>
-#include <QtConcurrent>
 #include "gui_compressor.h"
 
 class MainWindow : public QMainWindow
@@ -84,7 +81,6 @@ private:
     // Compressor
     // Compressor *m_compressor;
     QThread *m_compressorThread;
-    QFutureWatcher<QList<CompressionResult>> *m_compressionWatcher;
 };
 
 #endif // MAINWINDOW_H

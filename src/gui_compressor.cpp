@@ -127,7 +127,7 @@ CompressionResult PureCppCompressor::compressPDF(const std::string &inputPath, c
         // For PDF optimization, we'll create a compressed ZIP containing the PDF
         // In a real implementation, you would use a PDF library like Poppler or MuPDF
         // to actually optimize the PDF content
-        
+
         std::string zipPath = outputPath;
         if (zipPath.find(".zip") == std::string::npos) {
             zipPath = zipPath.substr(0, zipPath.find_last_of('.')) + "_optimized.zip";
@@ -170,7 +170,7 @@ CompressionResult PureCppCompressor::compressPDF(const std::string &inputPath, c
         // Add compressed PDF to ZIP
         fs::path inputFileName = fs::path(inputPath).filename();
         std::string optimizedName = inputFileName.stem().string() + "_optimized.pdf";
-        
+
         zip_source_t *source = zip_source_buffer(zip, compressed.data(), compressedSize, 0);
         if (zip_file_add(zip, optimizedName.c_str(), source, ZIP_FL_OVERWRITE) < 0) {
             zip_source_free(source);
