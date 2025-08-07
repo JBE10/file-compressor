@@ -18,6 +18,7 @@
 #include <QSettings>
 #include <QHeaderView>
 #include <QMimeData>
+#include <QDebug> // Added for qDebug
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -220,6 +221,11 @@ void MainWindow::createStatusBar()
 
 void MainWindow::setupConnections()
 {
+    qDebug() << "Setting up connections...";
+    qDebug() << "m_addFilesButton:" << m_addFilesButton;
+    qDebug() << "m_selectOutputButton:" << m_selectOutputButton;
+    qDebug() << "m_stopButton:" << m_stopButton;
+
     connect(m_addFilesButton, &QPushButton::clicked, this, &MainWindow::addFiles);
     connect(m_clearFilesButton, &QPushButton::clicked, this, &MainWindow::clearFiles);
     connect(m_selectOutputButton, &QPushButton::clicked, this, &MainWindow::selectOutputDirectory);
@@ -234,10 +240,13 @@ void MainWindow::setupConnections()
     connect(m_imageQualitySlider, &QSlider::valueChanged, [this](int value) {
         m_imageQualityLabel->setText(QString("Calidad de imagen: %1%").arg(value));
     });
+
+    qDebug() << "Connections set up successfully";
 }
 
 void MainWindow::addFiles()
 {
+    qDebug() << "addFiles() called";
     QStringList files = QFileDialog::getOpenFileNames(
         this,
         "Seleccionar archivos para comprimir",
@@ -258,6 +267,7 @@ void MainWindow::addFiles()
 
 void MainWindow::clearFiles()
 {
+    qDebug() << "clearFiles() called";
     m_selectedFiles.clear();
     m_fileListWidget->clear();
     updateStatus();
@@ -265,6 +275,7 @@ void MainWindow::clearFiles()
 
 void MainWindow::selectOutputDirectory()
 {
+    qDebug() << "selectOutputDirectory() called";
     QString dir = QFileDialog::getExistingDirectory(
         this,
         "Seleccionar directorio de salida",
@@ -280,6 +291,7 @@ void MainWindow::selectOutputDirectory()
 
 void MainWindow::startCompression()
 {
+    qDebug() << "startCompression() called";
     if (m_selectedFiles.isEmpty()) {
         QMessageBox::warning(this, "Error", "Por favor selecciona al menos un archivo.");
         return;
@@ -307,6 +319,7 @@ void MainWindow::startCompression()
 
 void MainWindow::stopCompression()
 {
+    qDebug() << "stopCompression() called";
     m_isCompressing = false;
     m_compressButton->setEnabled(true);
     m_stopButton->setEnabled(false);

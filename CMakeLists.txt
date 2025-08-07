@@ -70,7 +70,7 @@ if(APPLE)
     set_target_properties(gui_compressor PROPERTIES
         MACOSX_BUNDLE TRUE
     )
-    
+
     # Add AppKit framework
     target_link_libraries(gui_compressor "-framework AppKit")
 endif()

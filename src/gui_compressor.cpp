@@ -342,35 +342,3 @@ CompressionResult PureCppCompressor::compressImage(const std::string &inputPath,
 
     return result;
 }
-
-int main(int argc, char *argv[])
-{
-    // This is a placeholder for the main function.
-    // In a real application, you would instantiate PureCppCompressor
-    // and call its methods based on user input.
-    std::cout << "GUI Compressor (Pure C++)" << std::endl;
-    std::cout << "Usage: " << argv[0] << " <input_file> <output_file>" << std::endl;
-
-    if (argc < 3) {
-        std::cout << "Error: Missing input and/or output file arguments." << std::endl;
-        return 1;
-    }
-
-    std::string inputPath = argv[1];
-    std::string outputPath = argv[2];
-
-    PureCppCompressor compressor;
-    CompressionResult result = compressor.compressFile(inputPath, outputPath);
-
-    if (result.success) {
-        std::cout << "Compression successful!" << std::endl;
-        std::cout << "Original Size: " << result.originalSize << " bytes" << std::endl;
-        std::cout << "Compressed Size: " << result.compressedSize << " bytes" << std::endl;
-        std::cout << "Compression Ratio: " << std::fixed << std::setprecision(2) << result.compressionRatio << "%" << std::endl;
-        std::cout << "Output Path: " << result.outputPath << std::endl;
-    } else {
-        std::cout << "Compression failed: " << result.errorMessage << std::endl;
-    }
-
-    return 0;
-}
