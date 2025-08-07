@@ -22,6 +22,8 @@ public:
 private:
     static CompressionResult compressTextFile(const std::string &inputPath, const std::string &outputPath);
     static CompressionResult compressBinaryFile(const std::string &inputPath, const std::string &outputPath);
+    static CompressionResult compressPDF(const std::string &inputPath, const std::string &outputPath);
+    static CompressionResult compressToZip(const std::string &inputPath, const std::string &outputPath);
 };
 
 #endif // GUI_COMPRESSOR_H

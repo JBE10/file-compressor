@@ -1,5 +1,6 @@
 QT += core widgets concurrent
 CONFIG += c++17
+CONFIG += sdk_no_version_check
 
 TARGET = gui_compressor
 TEMPLATE = app

@@ -11,7 +11,6 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QApplication>
-#include <QDesktopWidget>
 #include <QScreen>
 #include <QThread>
 #include <QFuture>
