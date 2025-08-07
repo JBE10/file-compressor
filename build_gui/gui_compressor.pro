@@ -41,4 +41,4 @@ QMAKE_TARGET_COPYRIGHT = "Copyright (c) 2024 Juan Bautista Espino"
 # Bundle settings for macOS
 # macx {
 #     QMAKE_INFO_PLIST = resources/Info.plist
-# } 
+# }

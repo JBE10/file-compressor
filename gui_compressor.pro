@@ -5,10 +5,10 @@ TARGET = gui_compressor
 TEMPLATE = app
 
 SOURCES += ../src/gui_main.cpp \
-           ../src/gui_mainwindow_simple.cpp \
+           ../src/gui_mainwindow.cpp \
            ../src/gui_compressor.cpp
 
-HEADERS += ../include/gui_mainwindow.h \
+HEADERS += ../include/mainwindow.h \
            ../include/gui_compressor.h
 
 INCLUDEPATH += ../include
