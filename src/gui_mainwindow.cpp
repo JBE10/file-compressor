@@ -216,34 +216,34 @@ void MainWindow::startCompression()
         QMessageBox::warning(this, "Error", "Por favor selecciona al menos un archivo.");
         return;
     }
-    
+
     if (m_outputDirectory.isEmpty()) {
         QMessageBox::warning(this, "Error", "Por favor selecciona un directorio de salida.");
         return;
     }
-    
+
     enableControls(false);
     m_progressBar->setVisible(true);
     m_progressBar->setRange(0, m_selectedFiles.size());
     m_progressBar->setValue(0);
     m_progressLabel->setText("Iniciando compresión...");
-    
+
     // Process files synchronously
     QList<CompressionResult> results;
     for (int i = 0; i < m_selectedFiles.size(); ++i) {
         QString inputFile = m_selectedFiles[i];
         QFileInfo fileInfo(inputFile);
         QString outputFile = m_outputDirectory + "/" + fileInfo.baseName();
-        
+
         CompressionResult result = PureCppCompressor::compressFile(inputFile.toStdString(), outputFile.toStdString());
         results.append(result);
-        
+
         // Update progress
         m_progressBar->setValue(i + 1);
         m_progressLabel->setText(QString("Comprimiendo %1...").arg(fileInfo.fileName()));
         QApplication::processEvents();
     }
-    
+
     onCompressionFinished(results);
 }
 
