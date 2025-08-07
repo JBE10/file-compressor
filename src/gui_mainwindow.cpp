@@ -64,19 +64,7 @@ MainWindow::~MainWindow()
     }
 }
 
-void MainWindow::setupUI()
-{
-    m_centralWidget = new QWidget;
-    setCentralWidget(m_centralWidget);
 
-    m_mainLayout = new QVBoxLayout(m_centralWidget);
-
-    createFileSelectionSection();
-    createCompressionOptionsSection();
-    createProgressSection();
-    createResultsSection();
-    createControlButtons();
-}
 
 void MainWindow::setupConnections()
 {
@@ -85,6 +73,20 @@ void MainWindow::setupConnections()
     connect(m_selectOutputButton, &QPushButton::clicked, this, &MainWindow::selectOutputDirectory);
     connect(m_compressButton, &QPushButton::clicked, this, &MainWindow::startCompression);
     connect(m_exitButton, &QPushButton::clicked, this, &QWidget::close);
+}
+
+void MainWindow::setupUI()
+{
+    m_centralWidget = new QWidget;
+    setCentralWidget(m_centralWidget);
+    
+    m_mainLayout = new QVBoxLayout(m_centralWidget);
+    
+    createFileSelectionSection();
+    createCompressionOptionsSection();
+    createProgressSection();
+    createResultsSection();
+    createControlButtons();
 }
 
 void MainWindow::createFileSelectionSection()
