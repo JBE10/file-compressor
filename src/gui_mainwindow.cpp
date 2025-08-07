@@ -13,9 +13,6 @@
 #include <QApplication>
 #include <QScreen>
 #include <QThread>
-#include <QFuture>
-#include <QtConcurrent>
-#include <QFutureWatcher>
 #include <QFileInfo>
 #include <QDir>
 #include <QSettings>
@@ -39,7 +36,6 @@ MainWindow::MainWindow(QWidget *parent)
     , m_exitButton(nullptr)
     // , m_compressor(nullptr)
     , m_compressorThread(nullptr)
-    , m_compressionWatcher(nullptr)
 {
     setupUI();
     setupConnections();
@@ -220,47 +216,35 @@ void MainWindow::startCompression()
         QMessageBox::warning(this, "Error", "Por favor selecciona al menos un archivo.");
         return;
     }
-
+    
     if (m_outputDirectory.isEmpty()) {
         QMessageBox::warning(this, "Error", "Por favor selecciona un directorio de salida.");
         return;
     }
-
+    
     enableControls(false);
     m_progressBar->setVisible(true);
     m_progressBar->setRange(0, m_selectedFiles.size());
     m_progressBar->setValue(0);
     m_progressLabel->setText("Iniciando compresión...");
-
-    // Create compressor (using PureCppCompressor instead of Compressor)
-    // m_compressor = new Compressor(this);
-
-    // Create watcher for async compression
-    m_compressionWatcher = new QFutureWatcher<QList<CompressionResult>>(this);
-
-    connect(m_compressionWatcher, &QFutureWatcher<QList<CompressionResult>>::finished,
-            this, [this]() {
-                onCompressionFinished(m_compressionWatcher->result());
-            });
-
-    // Start compression in background
-    QFuture<QList<CompressionResult>> future = QtConcurrent::run([this]() {
-        QList<CompressionResult> results;
-        for (int i = 0; i < m_selectedFiles.size(); ++i) {
-            QString inputFile = m_selectedFiles[i];
-            QFileInfo fileInfo(inputFile);
-            QString outputFile = m_outputDirectory + "/" + fileInfo.baseName() + ".compressed";
-
-            CompressionResult result = PureCppCompressor::compressFile(inputFile.toStdString(), outputFile.toStdString());
-            results.append(result);
-
-            // Update progress
-            emit m_compressionWatcher->progressValueChanged(i + 1);
-        }
-        return results;
-    });
-
-    m_compressionWatcher->setFuture(future);
+    
+    // Process files synchronously
+    QList<CompressionResult> results;
+    for (int i = 0; i < m_selectedFiles.size(); ++i) {
+        QString inputFile = m_selectedFiles[i];
+        QFileInfo fileInfo(inputFile);
+        QString outputFile = m_outputDirectory + "/" + fileInfo.baseName();
+        
+        CompressionResult result = PureCppCompressor::compressFile(inputFile.toStdString(), outputFile.toStdString());
+        results.append(result);
+        
+        // Update progress
+        m_progressBar->setValue(i + 1);
+        m_progressLabel->setText(QString("Comprimiendo %1...").arg(fileInfo.fileName()));
+        QApplication::processEvents();
+    }
+    
+    onCompressionFinished(results);
 }
 
 void MainWindow::onCompressionFinished(const QList<CompressionResult> &results)
@@ -270,11 +254,7 @@ void MainWindow::onCompressionFinished(const QList<CompressionResult> &results)
     m_progressBar->setVisible(false);
     m_progressLabel->setText("Compresión completada");
 
-    // Cleanup
-    // if (m_compressor) {
-    //     m_compressor->deleteLater();
-    //     m_compressor = nullptr;
-    // }
+
 }
 
 void MainWindow::onErrorOccurred(const QString &error)
