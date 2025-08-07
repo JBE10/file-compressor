@@ -1,4 +1,4 @@
-#include "mainwindow.h"
+#include "gui_mainwindow.h"
 #include "gui_compressor.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
@@ -7,7 +7,7 @@
 #include <QPushButton>
 #include <QListWidget>
 #include <QProgressBar>
-#include <QTextEdit>
+#include <QTableWidget>
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QApplication>
@@ -16,81 +16,91 @@
 #include <QFileInfo>
 #include <QDir>
 #include <QSettings>
+#include <QHeaderView>
+#include <QtConcurrent>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
-    , m_centralWidget(nullptr)
-    , m_mainLayout(nullptr)
     , m_fileListWidget(nullptr)
-    , m_addFilesButton(nullptr)
-    , m_clearFilesButton(nullptr)
-    , m_outputPathLabel(nullptr)
-    , m_selectOutputButton(nullptr)
-    , m_compressionTypeGroup(nullptr)
-    , m_zipRadioButton(nullptr)
-    , m_gzipRadioButton(nullptr)
     , m_progressBar(nullptr)
     , m_progressLabel(nullptr)
-    , m_resultsTextEdit(nullptr)
+    , m_outputPathLabel(nullptr)
+    , m_addFilesButton(nullptr)
+    , m_clearFilesButton(nullptr)
+    , m_selectOutputButton(nullptr)
     , m_compressButton(nullptr)
-    , m_exitButton(nullptr)
-    // , m_compressor(nullptr)
-    , m_compressorThread(nullptr)
+    , m_stopButton(nullptr)
+    , m_clearResultsButton(nullptr)
+    , m_compressionTypeCombo(nullptr)
+    , m_compressionLevelSlider(nullptr)
+    , m_imageQualitySlider(nullptr)
+    , m_compressionLevelLabel(nullptr)
+    , m_imageQualityLabel(nullptr)
+    , m_preserveStructureCheck(nullptr)
+    , m_overwriteCheck(nullptr)
+    , m_resultsTable(nullptr)
+    , m_compressionWatcher(nullptr)
+    , m_isCompressing(false)
 {
     setupUI();
     setupConnections();
+    loadSettings();
 
     // Set window properties
-    setWindowTitle("Compresor de Archivos");
-    setMinimumSize(600, 500);
+    setWindowTitle("Compresor de Archivos GUI");
+    setMinimumSize(800, 600);
 
     // Center window on screen
     QRect screenGeometry = QApplication::primaryScreen()->geometry();
     int x = (screenGeometry.width() - width()) / 2;
     int y = (screenGeometry.height() - height()) / 2;
     move(x, y);
+
+    // Enable drag and drop
+    setAcceptDrops(true);
 }
 
 MainWindow::~MainWindow()
 {
-    if (m_compressorThread) {
-        m_compressorThread->quit();
-        m_compressorThread->wait();
+    saveSettings();
+    if (m_compressionWatcher) {
+        m_compressionWatcher->cancel();
+        m_compressionWatcher->waitForFinished();
     }
-}
-
-
-
-void MainWindow::setupConnections()
-{
-    connect(m_addFilesButton, &QPushButton::clicked, this, &MainWindow::addFiles);
-    connect(m_clearFilesButton, &QPushButton::clicked, this, &MainWindow::clearFiles);
-    connect(m_selectOutputButton, &QPushButton::clicked, this, &MainWindow::selectOutputDirectory);
-    connect(m_compressButton, &QPushButton::clicked, this, &MainWindow::startCompression);
-    connect(m_exitButton, &QPushButton::clicked, this, &QWidget::close);
 }
 
 void MainWindow::setupUI()
 {
-    m_centralWidget = new QWidget;
-    setCentralWidget(m_centralWidget);
+    QWidget *centralWidget = new QWidget;
+    setCentralWidget(centralWidget);
 
-    m_mainLayout = new QVBoxLayout(m_centralWidget);
+    QVBoxLayout *mainLayout = new QVBoxLayout(centralWidget);
 
-    createFileSelectionSection();
-    createCompressionOptionsSection();
-    createProgressSection();
-    createResultsSection();
-    createControlButtons();
+    createHeader(mainLayout);
+    createFileSelectionSection(mainLayout);
+    createCompressionOptionsSection(mainLayout);
+    createProgressSection(mainLayout);
+    createResultsSection(mainLayout);
+    createControlButtons(mainLayout);
+    createStatusBar();
 }
 
-void MainWindow::createFileSelectionSection()
+void MainWindow::createHeader(QVBoxLayout *mainLayout)
+{
+    QLabel *titleLabel = new QLabel("Compresor de Archivos");
+    titleLabel->setStyleSheet("font-size: 24px; font-weight: bold; margin: 10px;");
+    titleLabel->setAlignment(Qt::AlignCenter);
+    mainLayout->addWidget(titleLabel);
+}
+
+void MainWindow::createFileSelectionSection(QVBoxLayout *mainLayout)
 {
     QGroupBox *fileGroup = new QGroupBox("Selección de Archivos");
     QVBoxLayout *fileLayout = new QVBoxLayout(fileGroup);
 
     // File list
     m_fileListWidget = new QListWidget;
+    m_fileListWidget->setMinimumHeight(150);
     fileLayout->addWidget(m_fileListWidget);
 
     // Buttons
@@ -109,70 +119,126 @@ void MainWindow::createFileSelectionSection()
     outputLayout->addWidget(m_selectOutputButton);
     fileLayout->addLayout(outputLayout);
 
-    m_mainLayout->addWidget(fileGroup);
+    mainLayout->addWidget(fileGroup);
 }
 
-void MainWindow::createCompressionOptionsSection()
+void MainWindow::createCompressionOptionsSection(QVBoxLayout *mainLayout)
 {
     QGroupBox *optionsGroup = new QGroupBox("Opciones de Compresión");
-    QHBoxLayout *optionsLayout = new QHBoxLayout(optionsGroup);
+    QVBoxLayout *optionsLayout = new QVBoxLayout(optionsGroup);
 
-    m_compressionTypeGroup = new QButtonGroup(this);
-    m_zipRadioButton = new QRadioButton("ZIP");
-    m_gzipRadioButton = new QRadioButton("GZIP");
+    // Compression type
+    QHBoxLayout *typeLayout = new QHBoxLayout;
+    QLabel *typeLabel = new QLabel("Tipo de compresión:");
+    m_compressionTypeCombo = new QComboBox;
+    m_compressionTypeCombo->addItems({"Automático", "ZIP", "GZIP", "Optimizado"});
+    typeLayout->addWidget(typeLabel);
+    typeLayout->addWidget(m_compressionTypeCombo);
+    optionsLayout->addLayout(typeLayout);
 
-    m_compressionTypeGroup->addButton(m_zipRadioButton);
-    m_compressionTypeGroup->addButton(m_gzipRadioButton);
+    // Compression level
+    QHBoxLayout *levelLayout = new QHBoxLayout;
+    m_compressionLevelLabel = new QLabel("Nivel de compresión: 6");
+    m_compressionLevelSlider = new QSlider(Qt::Horizontal);
+    m_compressionLevelSlider->setRange(1, 9);
+    m_compressionLevelSlider->setValue(6);
+    levelLayout->addWidget(m_compressionLevelLabel);
+    levelLayout->addWidget(m_compressionLevelSlider);
+    optionsLayout->addLayout(levelLayout);
 
-    m_zipRadioButton->setChecked(true);
+    // Image quality
+    QHBoxLayout *qualityLayout = new QHBoxLayout;
+    m_imageQualityLabel = new QLabel("Calidad de imagen: 85%");
+    m_imageQualitySlider = new QSlider(Qt::Horizontal);
+    m_imageQualitySlider->setRange(10, 100);
+    m_imageQualitySlider->setValue(85);
+    qualityLayout->addWidget(m_imageQualityLabel);
+    qualityLayout->addWidget(m_imageQualitySlider);
+    optionsLayout->addLayout(qualityLayout);
 
-    optionsLayout->addWidget(m_zipRadioButton);
-    optionsLayout->addWidget(m_gzipRadioButton);
-    optionsLayout->addStretch();
+    // Checkboxes
+    QHBoxLayout *checkLayout = new QHBoxLayout;
+    m_preserveStructureCheck = new QCheckBox("Preservar estructura de directorios");
+    m_overwriteCheck = new QCheckBox("Sobrescribir archivos existentes");
+    m_preserveStructureCheck->setChecked(true);
+    m_overwriteCheck->setChecked(false);
+    checkLayout->addWidget(m_preserveStructureCheck);
+    checkLayout->addWidget(m_overwriteCheck);
+    optionsLayout->addLayout(checkLayout);
 
-    m_mainLayout->addWidget(optionsGroup);
+    mainLayout->addWidget(optionsGroup);
 }
 
-void MainWindow::createProgressSection()
+void MainWindow::createProgressSection(QVBoxLayout *mainLayout)
 {
     QGroupBox *progressGroup = new QGroupBox("Progreso");
     QVBoxLayout *progressLayout = new QVBoxLayout(progressGroup);
 
-    m_progressLabel = new QLabel("Listo para comprimir");
     m_progressBar = new QProgressBar;
     m_progressBar->setVisible(false);
-
-    progressLayout->addWidget(m_progressLabel);
     progressLayout->addWidget(m_progressBar);
 
-    m_mainLayout->addWidget(progressGroup);
+    m_progressLabel = new QLabel("Listo para comprimir");
+    progressLayout->addWidget(m_progressLabel);
+
+    mainLayout->addWidget(progressGroup);
 }
 
-void MainWindow::createResultsSection()
+void MainWindow::createResultsSection(QVBoxLayout *mainLayout)
 {
     QGroupBox *resultsGroup = new QGroupBox("Resultados");
     QVBoxLayout *resultsLayout = new QVBoxLayout(resultsGroup);
 
-    m_resultsTextEdit = new QTextEdit;
-    m_resultsTextEdit->setReadOnly(true);
-    m_resultsTextEdit->setMaximumHeight(150);
+    m_resultsTable = new QTableWidget;
+    m_resultsTable->setColumnCount(5);
+    m_resultsTable->setHorizontalHeaderLabels({"Archivo", "Tamaño Original", "Tamaño Comprimido", "Ratio", "Estado"});
+    m_resultsTable->horizontalHeader()->setStretchLastSection(true);
+    m_resultsTable->setMinimumHeight(200);
+    resultsLayout->addWidget(m_resultsTable);
 
-    resultsLayout->addWidget(m_resultsTextEdit);
-
-    m_mainLayout->addWidget(resultsGroup);
+    mainLayout->addWidget(resultsGroup);
 }
 
-void MainWindow::createControlButtons()
+void MainWindow::createControlButtons(QVBoxLayout *mainLayout)
 {
     QHBoxLayout *controlLayout = new QHBoxLayout;
 
-    m_compressButton = new QPushButton("Comprimir");
-    m_exitButton = new QPushButton("Salir");
+    m_compressButton = new QPushButton("Iniciar Compresión");
+    m_stopButton = new QPushButton("Detener");
+    m_clearResultsButton = new QPushButton("Limpiar Resultados");
+
+    m_compressButton->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; padding: 10px; font-weight: bold; }");
+    m_stopButton->setStyleSheet("QPushButton { background-color: #f44336; color: white; padding: 10px; }");
+    m_stopButton->setEnabled(false);
 
     controlLayout->addWidget(m_compressButton);
-    controlLayout->addWidget(m_exitButton);
+    controlLayout->addWidget(m_stopButton);
+    controlLayout->addWidget(m_clearResultsButton);
 
-    m_mainLayout->addLayout(controlLayout);
+    mainLayout->addLayout(controlLayout);
+}
+
+void MainWindow::createStatusBar()
+{
+    statusBar()->showMessage("Listo");
+}
+
+void MainWindow::setupConnections()
+{
+    connect(m_addFilesButton, &QPushButton::clicked, this, &MainWindow::addFiles);
+    connect(m_clearFilesButton, &QPushButton::clicked, this, &MainWindow::clearFiles);
+    connect(m_selectOutputButton, &QPushButton::clicked, this, &MainWindow::selectOutputDirectory);
+    connect(m_compressButton, &QPushButton::clicked, this, &MainWindow::startCompression);
+    connect(m_stopButton, &QPushButton::clicked, this, &MainWindow::stopCompression);
+    connect(m_clearResultsButton, &QPushButton::clicked, this, &MainWindow::clearResults);
+
+    connect(m_compressionLevelSlider, &QSlider::valueChanged, [this](int value) {
+        m_compressionLevelLabel->setText(QString("Nivel de compresión: %1").arg(value));
+    });
+
+    connect(m_imageQualitySlider, &QSlider::valueChanged, [this](int value) {
+        m_imageQualityLabel->setText(QString("Calidad de imagen: %1%").arg(value));
+    });
 }
 
 void MainWindow::addFiles()
@@ -185,8 +251,13 @@ void MainWindow::addFiles()
     );
 
     if (!files.isEmpty()) {
-        m_selectedFiles.append(files);
-        updateFileList();
+        for (const QString &file : files) {
+            if (!m_selectedFiles.contains(file)) {
+                m_selectedFiles.append(file);
+                m_fileListWidget->addItem(QFileInfo(file).fileName());
+            }
+        }
+        updateStatus();
     }
 }
 
@@ -194,6 +265,7 @@ void MainWindow::clearFiles()
 {
     m_selectedFiles.clear();
     m_fileListWidget->clear();
+    updateStatus();
 }
 
 void MainWindow::selectOutputDirectory()
@@ -207,6 +279,7 @@ void MainWindow::selectOutputDirectory()
     if (!dir.isEmpty()) {
         m_outputDirectory = dir;
         m_outputPathLabel->setText("Directorio de salida: " + dir);
+        updateStatus();
     }
 }
 
@@ -222,101 +295,148 @@ void MainWindow::startCompression()
         return;
     }
 
-    enableControls(false);
+    m_isCompressing = true;
+    m_compressButton->setEnabled(false);
+    m_stopButton->setEnabled(true);
     m_progressBar->setVisible(true);
     m_progressBar->setRange(0, m_selectedFiles.size());
     m_progressBar->setValue(0);
     m_progressLabel->setText("Iniciando compresión...");
 
-    // Process files synchronously
-    QList<CompressionResult> results;
+    // Clear previous results
+    m_resultsTable->setRowCount(0);
+
+    // Start compression in background
+    m_compressionWatcher = new QFutureWatcher<void>(this);
+    connect(m_compressionWatcher, &QFutureWatcher<void>::finished, this, &MainWindow::onCompressionFinished);
+    
+    QFuture<void> future = QtConcurrent::run([this]() {
+        compressFiles();
+    });
+    
+    m_compressionWatcher->setFuture(future);
+}
+
+void MainWindow::stopCompression()
+{
+    if (m_compressionWatcher && m_compressionWatcher->isRunning()) {
+        m_compressionWatcher->cancel();
+        m_compressionWatcher->waitForFinished();
+    }
+    
+    m_isCompressing = false;
+    m_compressButton->setEnabled(true);
+    m_stopButton->setEnabled(false);
+    m_progressBar->setVisible(false);
+    m_progressLabel->setText("Compresión detenida");
+}
+
+void MainWindow::clearResults()
+{
+    m_resultsTable->setRowCount(0);
+    updateStatus();
+}
+
+void MainWindow::compressFiles()
+{
     for (int i = 0; i < m_selectedFiles.size(); ++i) {
+        if (!m_isCompressing) break;
+
         QString inputFile = m_selectedFiles[i];
         QFileInfo fileInfo(inputFile);
-        QString outputFile = m_outputDirectory + "/" + fileInfo.baseName();
+        QString outputFile = m_outputDirectory + "/" + fileInfo.baseName() + "_compressed";
 
         CompressionResult result = PureCppCompressor::compressFile(inputFile.toStdString(), outputFile.toStdString());
-        results.append(result);
-
-        // Update progress
-        m_progressBar->setValue(i + 1);
-        m_progressLabel->setText(QString("Comprimiendo %1...").arg(fileInfo.fileName()));
-        QApplication::processEvents();
+        
+        // Emit progress update
+        QMetaObject::invokeMethod(this, [this, i, result, fileName = fileInfo.fileName()]() {
+            addResultToTable(result, fileName);
+            m_progressBar->setValue(i + 1);
+            m_progressLabel->setText(QString("Comprimiendo %1...").arg(fileName));
+        }, Qt::QueuedConnection);
     }
-
-    onCompressionFinished(results);
 }
 
-void MainWindow::onCompressionFinished(const QList<CompressionResult> &results)
+void MainWindow::addResultToTable(const CompressionResult &result, const QString &fileName)
 {
-    displayResults(results);
-    enableControls(true);
+    int row = m_resultsTable->rowCount();
+    m_resultsTable->insertRow(row);
+
+    m_resultsTable->setItem(row, 0, new QTableWidgetItem(fileName));
+    m_resultsTable->setItem(row, 1, new QTableWidgetItem(formatFileSize(result.originalSize)));
+    m_resultsTable->setItem(row, 2, new QTableWidgetItem(formatFileSize(result.compressedSize)));
+    m_resultsTable->setItem(row, 3, new QTableWidgetItem(QString("%1%").arg(result.compressionRatio, 0, 'f', 1)));
+    
+    QTableWidgetItem *statusItem = new QTableWidgetItem(result.success ? "✓ Exitoso" : "✗ Error");
+    statusItem->setForeground(result.success ? Qt::darkGreen : Qt::red);
+    m_resultsTable->setItem(row, 4, statusItem);
+}
+
+QString MainWindow::formatFileSize(size_t bytes)
+{
+    const char* units[] = {"B", "KB", "MB", "GB"};
+    int unit = 0;
+    double size = bytes;
+    
+    while (size >= 1024.0 && unit < 3) {
+        size /= 1024.0;
+        unit++;
+    }
+    
+    return QString("%1 %2").arg(size, 0, 'f', 1).arg(units[unit]);
+}
+
+void MainWindow::onCompressionFinished()
+{
+    m_isCompressing = false;
+    m_compressButton->setEnabled(true);
+    m_stopButton->setEnabled(false);
     m_progressBar->setVisible(false);
     m_progressLabel->setText("Compresión completada");
-
-
+    updateStatus();
 }
 
-void MainWindow::onErrorOccurred(const QString &error)
+void MainWindow::updateStatus()
 {
-    QMessageBox::critical(this, "Error", error);
-    enableControls(true);
-    m_progressBar->setVisible(false);
-    m_progressLabel->setText("Error en la compresión");
+    QString status = QString("Archivos: %1 | Directorio: %2")
+        .arg(m_selectedFiles.size())
+        .arg(m_outputDirectory.isEmpty() ? "No seleccionado" : QFileInfo(m_outputDirectory).fileName());
+    statusBar()->showMessage(status);
 }
 
-void MainWindow::onProgressUpdated(const QString &message, int percentage)
+void MainWindow::loadSettings()
 {
-    m_progressLabel->setText(message);
-    m_progressBar->setValue(percentage);
-}
-
-void MainWindow::displayResults(const QList<CompressionResult> &results)
-{
-    QString resultsText;
-    int successCount = 0;
-    int totalFiles = results.size();
-
-    for (const CompressionResult &result : results) {
-        if (result.success) {
-            successCount++;
-                resultsText += QString("✓ %1: %2 bytes → %3 bytes (%4% compresión)\n")
-                  .arg(QString::fromStdString(result.outputPath))
-                  .arg(result.originalSize)
-                  .arg(result.compressedSize)
-                  .arg(result.compressionRatio, 0, 'f', 1);
-        } else {
-            resultsText += QString("✗ Error: %1\n")
-                          .arg(QString::fromStdString(result.errorMessage));
-        }
+    QSettings settings;
+    m_outputDirectory = settings.value("outputDirectory", "").toString();
+    if (!m_outputDirectory.isEmpty()) {
+        m_outputPathLabel->setText("Directorio de salida: " + m_outputDirectory);
     }
-
-    resultsText += QString("\nResumen: %1/%2 archivos comprimidos exitosamente")
-                  .arg(successCount).arg(totalFiles);
-
-    m_resultsTextEdit->setText(resultsText);
 }
 
-void MainWindow::updateProgressBar(const QString &message, int percentage)
+void MainWindow::saveSettings()
 {
-    m_progressLabel->setText(message);
-    m_progressBar->setValue(percentage);
+    QSettings settings;
+    settings.setValue("outputDirectory", m_outputDirectory);
 }
 
-void MainWindow::enableControls(bool enable)
+void MainWindow::dragEnterEvent(QDragEnterEvent *event)
 {
-    m_addFilesButton->setEnabled(enable);
-    m_clearFilesButton->setEnabled(enable);
-    m_selectOutputButton->setEnabled(enable);
-    m_compressButton->setEnabled(enable);
-    m_zipRadioButton->setEnabled(enable);
-    m_gzipRadioButton->setEnabled(enable);
+    if (event->mimeData()->hasUrls()) {
+        event->acceptProposedAction();
+    }
 }
 
-void MainWindow::updateFileList()
+void MainWindow::dropEvent(QDropEvent *event)
 {
-    m_fileListWidget->clear();
-    for (const QString &file : m_selectedFiles) {
-        m_fileListWidget->addItem(file);
+    const QMimeData *mimeData = event->mimeData();
+    if (mimeData->hasUrls()) {
+        for (const QUrl &url : mimeData->urls()) {
+            QString filePath = url.toLocalFile();
+            if (!filePath.isEmpty() && !m_selectedFiles.contains(filePath)) {
+                m_selectedFiles.append(filePath);
+                m_fileListWidget->addItem(QFileInfo(filePath).fileName());
+            }
+        }
+        updateStatus();
     }
 }

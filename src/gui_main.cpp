@@ -2,6 +2,8 @@
 #include <QStyleFactory>
 #include <QDir>
 #include <QStandardPaths>
+#include <QPalette>
+#include <QColor>
 #include "gui_mainwindow.h"
 
 int main(int argc, char *argv[])

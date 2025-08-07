@@ -28,6 +28,9 @@ CompressionResult PureCppCompressor::compressFile(const std::string &inputPath, 
 
         if (extension == ".pdf") {
             return compressPDF(inputPath, outputPath);
+        } else if (extension == ".jpg" || extension == ".jpeg" || extension == ".png" ||
+                   extension == ".gif" || extension == ".bmp" || extension == ".tiff") {
+            return compressImage(inputPath, outputPath);
         } else if (extension == ".txt" || extension == ".log" || extension == ".csv" ||
                    extension == ".json" || extension == ".xml" || extension == ".html" ||
                    extension == ".css" || extension == ".js" || extension == ".cpp" ||
@@ -265,4 +268,109 @@ CompressionResult PureCppCompressor::compressToZip(const std::string &inputPath,
     }
 
     return result;
+}
+
+CompressionResult PureCppCompressor::compressImage(const std::string &inputPath, const std::string &outputPath)
+{
+    CompressionResult result;
+
+    try {
+        std::string zipPath = outputPath;
+        if (zipPath.find(".zip") == std::string::npos) {
+            zipPath = zipPath.substr(0, zipPath.find_last_of('.')) + "_optimized.zip";
+        }
+
+        int err = 0;
+        zip_t *zip = zip_open(zipPath.c_str(), ZIP_CREATE | ZIP_TRUNCATE, &err);
+        if (!zip) {
+            result.success = false;
+            result.errorMessage = "No se pudo crear el archivo ZIP para imagen";
+            return result;
+        }
+
+        // Read image file
+        std::ifstream imageFile(inputPath, std::ios::binary);
+        if (!imageFile.is_open()) {
+            zip_close(zip);
+            result.success = false;
+            result.errorMessage = "No se pudo abrir el archivo de imagen";
+            return result;
+        }
+
+        std::vector<unsigned char> imageContent((std::istreambuf_iterator<char>(imageFile)),
+                                               std::istreambuf_iterator<char>());
+        imageFile.close();
+
+        // Compress image content
+        std::vector<unsigned char> compressed;
+        uLong compressedSize = compressBound(imageContent.size());
+        compressed.resize(compressedSize);
+
+        if (compress2(compressed.data(), &compressedSize,
+                     imageContent.data(), imageContent.size(), Z_BEST_COMPRESSION) != Z_OK) {
+            zip_close(zip);
+            result.success = false;
+            result.errorMessage = "Error en la compresión de la imagen";
+            return result;
+        }
+
+        // Add compressed image to ZIP
+        fs::path inputFileName = fs::path(inputPath).filename();
+        std::string optimizedName = inputFileName.stem().string() + "_optimized" + inputFileName.extension().string();
+
+        zip_source_t *source = zip_source_buffer(zip, compressed.data(), compressedSize, 0);
+        if (zip_file_add(zip, optimizedName.c_str(), source, ZIP_FL_OVERWRITE) < 0) {
+            zip_source_free(source);
+            zip_close(zip);
+            result.success = false;
+            result.errorMessage = "Error al agregar imagen optimizada al ZIP";
+            return result;
+        }
+
+        zip_close(zip);
+
+        result.success = true;
+        result.originalSize = imageContent.size();
+        result.compressedSize = fs::file_size(zipPath);
+        result.compressionRatio = ((double)(result.originalSize - result.compressedSize) / result.originalSize) * 100.0;
+        result.outputPath = zipPath;
+
+    } catch (const std::exception &e) {
+        result.success = false;
+        result.errorMessage = std::string("Error: ") + e.what();
+    }
+
+    return result;
+}
+
+int main(int argc, char *argv[])
+{
+    // This is a placeholder for the main function.
+    // In a real application, you would instantiate PureCppCompressor
+    // and call its methods based on user input.
+    std::cout << "GUI Compressor (Pure C++)" << std::endl;
+    std::cout << "Usage: " << argv[0] << " <input_file> <output_file>" << std::endl;
+
+    if (argc < 3) {
+        std::cout << "Error: Missing input and/or output file arguments." << std::endl;
+        return 1;
+    }
+
+    std::string inputPath = argv[1];
+    std::string outputPath = argv[2];
+
+    PureCppCompressor compressor;
+    CompressionResult result = compressor.compressFile(inputPath, outputPath);
+
+    if (result.success) {
+        std::cout << "Compression successful!" << std::endl;
+        std::cout << "Original Size: " << result.originalSize << " bytes" << std::endl;
+        std::cout << "Compressed Size: " << result.compressedSize << " bytes" << std::endl;
+        std::cout << "Compression Ratio: " << std::fixed << std::setprecision(2) << result.compressionRatio << "%" << std::endl;
+        std::cout << "Output Path: " << result.outputPath << std::endl;
+    } else {
+        std::cout << "Compression failed: " << result.errorMessage << std::endl;
+    }
+
+    return 0;
 }

@@ -2,9 +2,15 @@
 
 echo "🚀 Building GUI File Compressor..."
 
+# Set Qt5 environment
+export PKG_CONFIG_PATH="/opt/homebrew/Cellar/qt@5/5.15.17/lib/pkgconfig"
+
 # Create build directory
 mkdir -p build_gui
 cd build_gui
+
+# Clean previous build
+rm -rf *
 
 # Copy the project file
 cp ../gui_compressor.pro .

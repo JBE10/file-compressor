@@ -15,6 +15,9 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QThread>
+#include <QCheckBox>
+#include <QSlider>
+#include <QSpinBox>
 #include "gui_compressor.h"
 
 class MainWindow : public QMainWindow
@@ -39,6 +42,7 @@ private:
     void setupConnections();
     void createFileSelectionSection();
     void createCompressionOptionsSection();
+    void createOptimizationSection();
     void createProgressSection();
     void createResultsSection();
     void createControlButtons();
@@ -62,6 +66,15 @@ private:
     QButtonGroup *m_compressionTypeGroup;
     QRadioButton *m_zipRadioButton;
     QRadioButton *m_gzipRadioButton;
+
+    // Optimization options
+    QGroupBox *m_optimizationGroup;
+    QCheckBox *m_optimizePdfCheck;
+    QCheckBox *m_optimizeImagesCheck;
+    QSlider *m_imageQualitySlider;
+    QLabel *m_imageQualityLabel;
+    QSpinBox *m_pdfCompressionLevelSpin;
+    QLabel *m_pdfCompressionLabel;
 
     // Progress
     QProgressBar *m_progressBar;
