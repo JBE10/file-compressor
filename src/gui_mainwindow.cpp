@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include "gui_compressor.h"
 #include <QVBoxLayout>
 #include <QHBoxLayout>
 #include <QGroupBox>
@@ -37,7 +38,7 @@ MainWindow::MainWindow(QWidget *parent)
     , m_resultsTextEdit(nullptr)
     , m_compressButton(nullptr)
     , m_exitButton(nullptr)
-    , m_compressor(nullptr)
+    // , m_compressor(nullptr)
     , m_compressorThread(nullptr)
     , m_compressionWatcher(nullptr)
 {
@@ -249,7 +250,7 @@ void MainWindow::startCompression()
             QFileInfo fileInfo(inputFile);
             QString outputFile = m_outputDirectory + "/" + fileInfo.baseName() + ".compressed";
 
-            CompressionResult result = m_compressor->compressFile(inputFile, outputFile);
+            CompressionResult result = PureCppCompressor::compressFile(inputFile.toStdString(), outputFile.toStdString());
             results.append(result);
 
             // Update progress
@@ -269,10 +270,10 @@ void MainWindow::onCompressionFinished(const QList<CompressionResult> &results)
     m_progressLabel->setText("Compresión completada");
 
     // Cleanup
-    if (m_compressor) {
-        m_compressor->deleteLater();
-        m_compressor = nullptr;
-    }
+    // if (m_compressor) {
+    //     m_compressor->deleteLater();
+    //     m_compressor = nullptr;
+    // }
 }
 
 void MainWindow::onErrorOccurred(const QString &error)
@@ -299,13 +300,13 @@ void MainWindow::displayResults(const QList<CompressionResult> &results)
         if (result.success) {
             successCount++;
                 resultsText += QString("✓ %1: %2 bytes → %3 bytes (%4% compresión)\n")
-                  .arg(result.outputPath)
+                  .arg(QString::fromStdString(result.outputPath))
                   .arg(result.originalSize)
                   .arg(result.compressedSize)
                   .arg(result.compressionRatio, 0, 'f', 1);
         } else {
             resultsText += QString("✗ Error: %1\n")
-                          .arg(result.errorMessage);
+                          .arg(QString::fromStdString(result.errorMessage));
         }
     }
 

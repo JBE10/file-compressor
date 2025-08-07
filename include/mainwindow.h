@@ -18,7 +18,7 @@
 #include <QFuture>
 #include <QFutureWatcher>
 #include <QtConcurrent>
-#include "compressor.h"
+#include "gui_compressor.h"
 
 class MainWindow : public QMainWindow
 {
@@ -82,7 +82,7 @@ private:
     QString m_outputDirectory;
 
     // Compressor
-    Compressor *m_compressor;
+    // Compressor *m_compressor;
     QThread *m_compressorThread;
     QFutureWatcher<QList<CompressionResult>> *m_compressionWatcher;
 };
