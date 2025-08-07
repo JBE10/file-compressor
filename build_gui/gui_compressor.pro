@@ -1,4 +1,4 @@
-QT += core widgets concurrent
+QT += core widgets
 CONFIG += c++17
 CONFIG += sdk_no_version_check
 
@@ -21,6 +21,9 @@ DEFINES += QT_DEPRECATED_WARNINGS
 macx {
     INCLUDEPATH += /opt/homebrew/include
     LIBS += -L/opt/homebrew/lib -lz -lzip
+    
+    # Exclude AGL framework on newer macOS versions
+    QMAKE_LFLAGS += -framework AppKit
 }
 
 # Linux specific

@@ -10,7 +10,6 @@
 #include <QSlider>
 #include <QCheckBox>
 #include <QTableWidget>
-#include <QFutureWatcher>
 #include <QStringList>
 #include <QString>
 #include <QSettings>
@@ -41,7 +40,6 @@ private slots:
     void startCompression();
     void stopCompression();
     void clearResults();
-    void onCompressionFinished();
 
 private:
     void setupUI();
@@ -84,7 +82,6 @@ private:
     // Data
     QStringList m_selectedFiles;
     QString m_outputDirectory;
-    QFutureWatcher<void> *m_compressionWatcher;
     bool m_isCompressing;
 };
 

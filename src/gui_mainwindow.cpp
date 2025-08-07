@@ -17,7 +17,7 @@
 #include <QDir>
 #include <QSettings>
 #include <QHeaderView>
-#include <QtConcurrent>
+#include <QMimeData>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -39,7 +39,6 @@ MainWindow::MainWindow(QWidget *parent)
     , m_preserveStructureCheck(nullptr)
     , m_overwriteCheck(nullptr)
     , m_resultsTable(nullptr)
-    , m_compressionWatcher(nullptr)
     , m_isCompressing(false)
 {
     setupUI();
@@ -63,10 +62,6 @@ MainWindow::MainWindow(QWidget *parent)
 MainWindow::~MainWindow()
 {
     saveSettings();
-    if (m_compressionWatcher) {
-        m_compressionWatcher->cancel();
-        m_compressionWatcher->waitForFinished();
-    }
 }
 
 void MainWindow::setupUI()
@@ -306,24 +301,12 @@ void MainWindow::startCompression()
     // Clear previous results
     m_resultsTable->setRowCount(0);
 
-    // Start compression in background
-    m_compressionWatcher = new QFutureWatcher<void>(this);
-    connect(m_compressionWatcher, &QFutureWatcher<void>::finished, this, &MainWindow::onCompressionFinished);
-    
-    QFuture<void> future = QtConcurrent::run([this]() {
-        compressFiles();
-    });
-    
-    m_compressionWatcher->setFuture(future);
+    // Start compression synchronously
+    compressFiles();
 }
 
 void MainWindow::stopCompression()
 {
-    if (m_compressionWatcher && m_compressionWatcher->isRunning()) {
-        m_compressionWatcher->cancel();
-        m_compressionWatcher->waitForFinished();
-    }
-    
     m_isCompressing = false;
     m_compressButton->setEnabled(true);
     m_stopButton->setEnabled(false);
@@ -347,14 +330,22 @@ void MainWindow::compressFiles()
         QString outputFile = m_outputDirectory + "/" + fileInfo.baseName() + "_compressed";
 
         CompressionResult result = PureCppCompressor::compressFile(inputFile.toStdString(), outputFile.toStdString());
-        
-        // Emit progress update
-        QMetaObject::invokeMethod(this, [this, i, result, fileName = fileInfo.fileName()]() {
-            addResultToTable(result, fileName);
-            m_progressBar->setValue(i + 1);
-            m_progressLabel->setText(QString("Comprimiendo %1...").arg(fileName));
-        }, Qt::QueuedConnection);
+
+        addResultToTable(result, fileInfo.fileName());
+        m_progressBar->setValue(i + 1);
+        m_progressLabel->setText(QString("Comprimiendo %1...").arg(fileInfo.fileName()));
+
+        // Process events to keep UI responsive
+        QApplication::processEvents();
     }
+
+    // Compression finished
+    m_isCompressing = false;
+    m_compressButton->setEnabled(true);
+    m_stopButton->setEnabled(false);
+    m_progressBar->setVisible(false);
+    m_progressLabel->setText("Compresión completada");
+    updateStatus();
 }
 
 void MainWindow::addResultToTable(const CompressionResult &result, const QString &fileName)
@@ -366,7 +357,7 @@ void MainWindow::addResultToTable(const CompressionResult &result, const QString
     m_resultsTable->setItem(row, 1, new QTableWidgetItem(formatFileSize(result.originalSize)));
     m_resultsTable->setItem(row, 2, new QTableWidgetItem(formatFileSize(result.compressedSize)));
     m_resultsTable->setItem(row, 3, new QTableWidgetItem(QString("%1%").arg(result.compressionRatio, 0, 'f', 1)));
-    
+
     QTableWidgetItem *statusItem = new QTableWidgetItem(result.success ? "✓ Exitoso" : "✗ Error");
     statusItem->setForeground(result.success ? Qt::darkGreen : Qt::red);
     m_resultsTable->setItem(row, 4, statusItem);
@@ -377,23 +368,13 @@ QString MainWindow::formatFileSize(size_t bytes)
     const char* units[] = {"B", "KB", "MB", "GB"};
     int unit = 0;
     double size = bytes;
-    
+
     while (size >= 1024.0 && unit < 3) {
         size /= 1024.0;
         unit++;
     }
-    
-    return QString("%1 %2").arg(size, 0, 'f', 1).arg(units[unit]);
-}
 
-void MainWindow::onCompressionFinished()
-{
-    m_isCompressing = false;
-    m_compressButton->setEnabled(true);
-    m_stopButton->setEnabled(false);
-    m_progressBar->setVisible(false);
-    m_progressLabel->setText("Compresión completada");
-    updateStatus();
+    return QString("%1 %2").arg(size, 0, 'f', 1).arg(units[unit]);
 }
 
 void MainWindow::updateStatus()
