@@ -79,9 +79,9 @@ void MainWindow::setupUI()
 {
     m_centralWidget = new QWidget;
     setCentralWidget(m_centralWidget);
-    
+
     m_mainLayout = new QVBoxLayout(m_centralWidget);
-    
+
     createFileSelectionSection();
     createCompressionOptionsSection();
     createProgressSection();
