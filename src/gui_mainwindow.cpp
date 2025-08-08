@@ -103,6 +103,11 @@ void MainWindow::createFileSelectionSection(QVBoxLayout *mainLayout)
     QHBoxLayout *buttonLayout = new QHBoxLayout;
     m_addFilesButton = new QPushButton("Agregar Archivos");
     m_clearFilesButton = new QPushButton("Limpiar Lista");
+
+    // Set button styles
+    m_addFilesButton->setStyleSheet("QPushButton { background-color: #2196F3; color: white; padding: 8px; font-weight: bold; border-radius: 4px; } QPushButton:hover { background-color: #1976D2; }");
+    m_clearFilesButton->setStyleSheet("QPushButton { background-color: #FF5722; color: white; padding: 8px; font-weight: bold; border-radius: 4px; } QPushButton:hover { background-color: #D84315; }");
+
     buttonLayout->addWidget(m_addFilesButton);
     buttonLayout->addWidget(m_clearFilesButton);
     fileLayout->addLayout(buttonLayout);
@@ -111,6 +116,10 @@ void MainWindow::createFileSelectionSection(QVBoxLayout *mainLayout)
     QHBoxLayout *outputLayout = new QHBoxLayout;
     m_outputPathLabel = new QLabel("Directorio de salida: No seleccionado");
     m_selectOutputButton = new QPushButton("Seleccionar Directorio");
+
+    // Set output button style
+    m_selectOutputButton->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; padding: 8px; font-weight: bold; border-radius: 4px; } QPushButton:hover { background-color: #388E3C; }");
+
     outputLayout->addWidget(m_outputPathLabel);
     outputLayout->addWidget(m_selectOutputButton);
     fileLayout->addLayout(outputLayout);
@@ -203,8 +212,11 @@ void MainWindow::createControlButtons(QVBoxLayout *mainLayout)
     m_stopButton = new QPushButton("Detener");
     m_clearResultsButton = new QPushButton("Limpiar Resultados");
 
-    m_compressButton->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; padding: 10px; font-weight: bold; }");
-    m_stopButton->setStyleSheet("QPushButton { background-color: #f44336; color: white; padding: 10px; }");
+    // Set button styles
+    m_compressButton->setStyleSheet("QPushButton { background-color: #4CAF50; color: white; padding: 10px; font-weight: bold; border-radius: 4px; } QPushButton:hover { background-color: #388E3C; }");
+    m_stopButton->setStyleSheet("QPushButton { background-color: #f44336; color: white; padding: 10px; border-radius: 4px; } QPushButton:hover { background-color: #D32F2F; }");
+    m_clearResultsButton->setStyleSheet("QPushButton { background-color: #FF9800; color: white; padding: 10px; border-radius: 4px; } QPushButton:hover { background-color: #F57C00; }");
+
     m_stopButton->setEnabled(false);
 
     controlLayout->addWidget(m_compressButton);
@@ -221,11 +233,7 @@ void MainWindow::createStatusBar()
 
 void MainWindow::setupConnections()
 {
-    qDebug() << "Setting up connections...";
-    qDebug() << "m_addFilesButton:" << m_addFilesButton;
-    qDebug() << "m_selectOutputButton:" << m_selectOutputButton;
-    qDebug() << "m_stopButton:" << m_stopButton;
-
+    // Connect all button signals
     connect(m_addFilesButton, &QPushButton::clicked, this, &MainWindow::addFiles);
     connect(m_clearFilesButton, &QPushButton::clicked, this, &MainWindow::clearFiles);
     connect(m_selectOutputButton, &QPushButton::clicked, this, &MainWindow::selectOutputDirectory);
@@ -233,6 +241,7 @@ void MainWindow::setupConnections()
     connect(m_stopButton, &QPushButton::clicked, this, &MainWindow::stopCompression);
     connect(m_clearResultsButton, &QPushButton::clicked, this, &MainWindow::clearResults);
 
+    // Connect slider signals
     connect(m_compressionLevelSlider, &QSlider::valueChanged, [this](int value) {
         m_compressionLevelLabel->setText(QString("Nivel de compresión: %1").arg(value));
     });
@@ -240,58 +249,106 @@ void MainWindow::setupConnections()
     connect(m_imageQualitySlider, &QSlider::valueChanged, [this](int value) {
         m_imageQualityLabel->setText(QString("Calidad de imagen: %1%").arg(value));
     });
-
-    qDebug() << "Connections set up successfully";
 }
 
 void MainWindow::addFiles()
 {
-    qDebug() << "addFiles() called";
-    QStringList files = QFileDialog::getOpenFileNames(
-        this,
-        "Seleccionar archivos para comprimir",
-        QDir::homePath(),
-        "Todos los archivos (*.*)"
-    );
+    QMessageBox::information(this, "Debug", "Botón 'Agregar Archivos' fue presionado");
 
-    if (!files.isEmpty()) {
-        for (const QString &file : files) {
-            if (!m_selectedFiles.contains(file)) {
-                m_selectedFiles.append(file);
-                m_fileListWidget->addItem(QFileInfo(file).fileName());
+    // Ensure window is active and visible
+    this->raise();
+    this->activateWindow();
+    this->show();
+
+    // Create dialog with explicit parent and modal behavior
+    QFileDialog *dialog = new QFileDialog(this);
+    dialog->setWindowTitle("Seleccionar archivos para comprimir");
+    dialog->setDirectory(QDir::homePath());
+    dialog->setFileMode(QFileDialog::ExistingFiles);
+    dialog->setNameFilter("Todos los archivos (*.*)");
+    dialog->setModal(true);
+
+    // Make sure dialog is visible
+    dialog->show();
+    dialog->raise();
+    dialog->activateWindow();
+
+    if (dialog->exec() == QDialog::Accepted) {
+        QStringList files = dialog->selectedFiles();
+        qDebug() << "Files selected:" << files;
+
+        if (!files.isEmpty()) {
+            for (const QString &file : files) {
+                if (!m_selectedFiles.contains(file)) {
+                    m_selectedFiles.append(file);
+                    m_fileListWidget->addItem(QFileInfo(file).fileName());
+                }
             }
+            updateStatus();
+            QMessageBox::information(this, "Éxito", QString("Se agregaron %1 archivos").arg(files.size()));
         }
-        updateStatus();
+    } else {
+        QMessageBox::information(this, "Info", "No se seleccionaron archivos");
     }
+
+    dialog->deleteLater();
 }
 
 void MainWindow::clearFiles()
 {
-    qDebug() << "clearFiles() called";
+    QMessageBox::information(this, "Debug", "Botón 'Limpiar Lista' fue presionado");
+
     m_selectedFiles.clear();
     m_fileListWidget->clear();
     updateStatus();
+
+    QMessageBox::information(this, "Éxito", "Lista de archivos limpiada");
 }
 
 void MainWindow::selectOutputDirectory()
 {
-    qDebug() << "selectOutputDirectory() called";
-    QString dir = QFileDialog::getExistingDirectory(
-        this,
-        "Seleccionar directorio de salida",
-        QDir::homePath()
-    );
+    QMessageBox::information(this, "Debug", "Botón 'Seleccionar Directorio' fue presionado");
 
-    if (!dir.isEmpty()) {
-        m_outputDirectory = dir;
-        m_outputPathLabel->setText("Directorio de salida: " + dir);
-        updateStatus();
+    // Ensure window is active and visible
+    this->raise();
+    this->activateWindow();
+    this->show();
+
+    // Create dialog with explicit parent and modal behavior
+    QFileDialog *dialog = new QFileDialog(this);
+    dialog->setWindowTitle("Seleccionar directorio de salida");
+    dialog->setDirectory(QDir::homePath());
+    dialog->setFileMode(QFileDialog::Directory);
+    dialog->setOption(QFileDialog::ShowDirsOnly, true);
+    dialog->setModal(true);
+
+    // Make sure dialog is visible
+    dialog->show();
+    dialog->raise();
+    dialog->activateWindow();
+
+    if (dialog->exec() == QDialog::Accepted) {
+        QStringList dirs = dialog->selectedFiles();
+        if (!dirs.isEmpty()) {
+            QString dir = dirs.first();
+            qDebug() << "Directory selected:" << dir;
+
+            m_outputDirectory = dir;
+            m_outputPathLabel->setText("Directorio de salida: " + dir);
+            updateStatus();
+            QMessageBox::information(this, "Éxito", "Directorio seleccionado: " + dir);
+        }
+    } else {
+        QMessageBox::information(this, "Info", "No se seleccionó ningún directorio");
     }
+
+    dialog->deleteLater();
 }
 
 void MainWindow::startCompression()
 {
-    qDebug() << "startCompression() called";
+    QMessageBox::information(this, "Debug", "Botón 'Iniciar Compresión' fue presionado");
+
     if (m_selectedFiles.isEmpty()) {
         QMessageBox::warning(this, "Error", "Por favor selecciona al menos un archivo.");
         return;
@@ -319,7 +376,8 @@ void MainWindow::startCompression()
 
 void MainWindow::stopCompression()
 {
-    qDebug() << "stopCompression() called";
+    QMessageBox::information(this, "Debug", "Botón 'Detener' fue presionado");
+
     m_isCompressing = false;
     m_compressButton->setEnabled(true);
     m_stopButton->setEnabled(false);
