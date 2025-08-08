@@ -42,22 +42,13 @@ class CompressorGUI:
 
     def create_widgets(self):
         """Create all GUI widgets with improved layout"""
-        # Main frame with scrollbar
-        self.main_canvas = ctk.CTkCanvas(self.root, bg="#2b2b2b")
-        self.scrollbar = ctk.CTkScrollbar(self.root, orientation="vertical", command=self.main_canvas.yview)
-        self.scrollable_frame = ctk.CTkFrame(self.main_canvas)
+        # Create main container frame
+        main_container = ctk.CTkFrame(self.root)
+        main_container.pack(fill="both", expand=True, padx=10, pady=10)
 
-        self.scrollable_frame.bind(
-            "<Configure>",
-            lambda e: self.main_canvas.configure(scrollregion=self.main_canvas.bbox("all"))
-        )
-
-        self.main_canvas.create_window((0, 0), window=self.scrollable_frame, anchor="nw")
-        self.main_canvas.configure(yscrollcommand=self.scrollbar.set)
-
-        # Pack scrollable elements
-        self.main_canvas.pack(side="left", fill="both", expand=True)
-        self.scrollbar.pack(side="right", fill="y")
+        # Create scrollable frame using CustomTkinter's built-in scrollable frame
+        self.scrollable_frame = ctk.CTkScrollableFrame(main_container)
+        self.scrollable_frame.pack(fill="both", expand=True)
 
         # Title
         title_label = ctk.CTkLabel(
@@ -420,6 +411,8 @@ class CompressorGUI:
             font=ctk.CTkFont(size=10)
         )
         self.status_bar.pack(side="bottom", fill="x", padx=5, pady=2)
+
+
 
     def update_quality_label(self, value):
         """Update quality label when slider changes"""

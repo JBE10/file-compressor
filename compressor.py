@@ -12,6 +12,8 @@ from typing import List, Dict, Optional, Callable, Union
 import logging
 from pathlib import Path
 import mimetypes
+import subprocess
+import tempfile
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -34,6 +36,7 @@ class FileCompressor:
         self.config = config or CompressionConfig()
         self._supported_image_formats = {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.webp'}
         self._supported_pdf_formats = {'.pdf'}
+        self._ghostscript_available = self._check_ghostscript()
 
     def update_progress(self, message: str, percentage: float) -> None:
         """Update progress callback if provided"""
@@ -42,6 +45,15 @@ class FileCompressor:
                 self.progress_callback(message, percentage)
             except Exception as e:
                 logger.warning(f"Error in progress callback: {e}")
+
+    def _check_ghostscript(self) -> bool:
+        """Check if Ghostscript is available for PDF compression"""
+        try:
+            result = subprocess.run(['gs', '--version'],
+                                  capture_output=True, text=True, timeout=5)
+            return result.returncode == 0
+        except:
+            return False
 
     def get_file_type(self, file_path: str) -> str:
         """Determine file type based on extension and mime type"""
@@ -133,9 +145,21 @@ class FileCompressor:
             raise Exception(f"Error comprimiendo imagen: {str(e)}")
 
     def compress_pdf(self, input_path: str, output_path: str) -> Dict:
-        """Compress PDF files with improved error handling"""
+        """Compress PDF files with advanced optimization techniques"""
         try:
-            self.update_progress(f"Comprimiendo PDF: {os.path.basename(input_path)}", 10)
+            self.update_progress(f"Analizando PDF: {os.path.basename(input_path)}", 10)
+
+            # First try with Ghostscript for better compression if available
+            if self._ghostscript_available:
+                self.update_progress(f"Intentando compresión con Ghostscript...", 15)
+                if self._try_ghostscript_compression(input_path, output_path):
+                    self.update_progress(f"PDF comprimido con Ghostscript", 100)
+                    return self._calculate_compression_stats(input_path, output_path)
+            else:
+                self.update_progress(f"Ghostscript no disponible, usando PyPDF2...", 15)
+
+            # Fallback to PyPDF2 compression
+            self.update_progress(f"Usando compresión PyPDF2...", 20)
 
             # Read PDF with error handling
             with open(input_path, 'rb') as file:
@@ -148,15 +172,32 @@ class FileCompressor:
 
                 self.update_progress(f"Procesando {len(reader.pages)} páginas...", 30)
 
-                # Add pages to writer with progress
+                # Add pages to writer with compression optimization
                 for i, page in enumerate(reader.pages):
-                    writer.add_page(page)
+                    # Try to compress the page content
+                    try:
+                        # Remove unnecessary metadata and optimize page
+                        if hasattr(page, 'compress_content_streams'):
+                            page.compress_content_streams()
+
+                        # Add page with compression
+                        writer.add_page(page)
+
+                    except Exception as e:
+                        # If compression fails, add page as is
+                        logger.warning(f"Could not compress page {i+1}: {e}")
+                        writer.add_page(page)
+
                     progress = 30 + (i / len(reader.pages)) * 40
                     self.update_progress(f"Procesando página {i+1}/{len(reader.pages)}", progress)
 
                 self.update_progress(f"Optimizando PDF...", 70)
 
-                # Write compressed PDF
+                # Try to remove unnecessary metadata
+                if hasattr(writer, 'remove_links'):
+                    writer.remove_links()
+
+                # Write compressed PDF with maximum compression
                 with open(output_path, 'wb') as output_file:
                     writer.write(output_file)
 
@@ -167,6 +208,52 @@ class FileCompressor:
         except Exception as e:
             logger.error(f"Error comprimiendo PDF {input_path}: {e}")
             raise Exception(f"Error comprimiendo PDF: {str(e)}")
+
+    def _try_ghostscript_compression(self, input_path: str, output_path: str) -> bool:
+        """Try to compress PDF using Ghostscript for better compression"""
+        try:
+            # Try different compression levels
+            compression_levels = [
+                ('/ebook', 'Calidad media'),
+                ('/screen', 'Baja calidad'),
+                ('/printer', 'Alta calidad')
+            ]
+
+            for level, description in compression_levels:
+                try:
+                    cmd = [
+                        'gs', '-sDEVICE=pdfwrite',
+                        f'-dPDFSETTINGS={level}',
+                        '-dCompatibilityLevel=1.4',
+                        '-dNOPAUSE', '-dQUIET', '-dBATCH',
+                        '-sOutputFile=' + output_path,
+                        input_path
+                    ]
+
+                    result = subprocess.run(cmd, capture_output=True, timeout=30)
+
+                    if result.returncode == 0 and os.path.exists(output_path):
+                        # Check if compression was successful
+                        original_size = os.path.getsize(input_path)
+                        compressed_size = os.path.getsize(output_path)
+
+                        if compressed_size < original_size:
+                            logger.info(f"PDF comprimido con {description} (Ghostscript)")
+                            return True
+                        else:
+                            # Remove file if no compression achieved
+                            os.remove(output_path)
+                            continue
+
+                except Exception as e:
+                    logger.warning(f"Ghostscript compression failed with {level}: {e}")
+                    continue
+
+            return False
+
+        except (subprocess.TimeoutExpired, FileNotFoundError, Exception) as e:
+            logger.warning(f"Ghostscript compression failed: {e}")
+            return False
 
     def compress_general_file(self, input_path: str, output_path: str, compression_type: str = "zip") -> Dict:
         """Compress general files using ZIP or GZIP with optimized settings"""
