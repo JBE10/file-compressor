@@ -51,32 +51,7 @@ CompressionResult PureCppCompressor::compressTextFile(const std::string &inputPa
     CompressionResult result;
 
     try {
-        std::ifstream inputFile(inputPath, std::ios::binary);
-        if (!inputFile.is_open()) {
-            result.success = false;
-            result.errorMessage = "No se pudo abrir el archivo de entrada";
-            return result;
-        }
-
-        // Read file content
-        std::string content((std::istreambuf_iterator<char>(inputFile)),
-                           std::istreambuf_iterator<char>());
-        inputFile.close();
-
-        // Compress using zlib
-        std::vector<unsigned char> compressed;
-        uLong compressedSize = compressBound(content.size());
-        compressed.resize(compressedSize);
-
-        if (compress2(compressed.data(), &compressedSize,
-                     reinterpret_cast<const unsigned char*>(content.data()),
-                     content.size(), Z_BEST_COMPRESSION) != Z_OK) {
-            result.success = false;
-            result.errorMessage = "Error en la compresión zlib";
-            return result;
-        }
-
-        // Create ZIP file
+        // Create ZIP file directly without additional compression
         std::string zipPath = outputPath;
         if (zipPath.find(".zip") == std::string::npos) {
             zipPath = zipPath.substr(0, zipPath.find_last_of('.')) + ".zip";
@@ -90,9 +65,22 @@ CompressionResult PureCppCompressor::compressTextFile(const std::string &inputPa
             return result;
         }
 
-        // Add compressed data to ZIP
+        // Read file content
+        std::ifstream inputFile(inputPath, std::ios::binary);
+        if (!inputFile.is_open()) {
+            zip_close(zip);
+            result.success = false;
+            result.errorMessage = "No se pudo abrir el archivo de entrada";
+            return result;
+        }
+
+        std::vector<unsigned char> content((std::istreambuf_iterator<char>(inputFile)),
+                                          std::istreambuf_iterator<char>());
+        inputFile.close();
+
+        // Add file directly to ZIP (ZIP will handle compression)
         fs::path inputFileName = fs::path(inputPath).filename();
-        zip_source_t *source = zip_source_buffer(zip, compressed.data(), compressedSize, 0);
+        zip_source_t *source = zip_source_buffer(zip, content.data(), content.size(), 0);
         if (zip_file_add(zip, inputFileName.string().c_str(), source, ZIP_FL_OVERWRITE) < 0) {
             zip_source_free(source);
             zip_close(zip);
@@ -127,13 +115,10 @@ CompressionResult PureCppCompressor::compressPDF(const std::string &inputPath, c
     CompressionResult result;
 
     try {
-        // For PDF optimization, we'll create a compressed ZIP containing the PDF
-        // In a real implementation, you would use a PDF library like Poppler or MuPDF
-        // to actually optimize the PDF content
-
+        // Create ZIP file containing the PDF
         std::string zipPath = outputPath;
         if (zipPath.find(".zip") == std::string::npos) {
-            zipPath = zipPath.substr(0, zipPath.find_last_of('.')) + "_optimized.zip";
+            zipPath = zipPath.substr(0, zipPath.find_last_of('.')) + ".zip";
         }
 
         int err = 0;
@@ -157,29 +142,14 @@ CompressionResult PureCppCompressor::compressPDF(const std::string &inputPath, c
                                              std::istreambuf_iterator<char>());
         pdfFile.close();
 
-        // Compress PDF content
-        std::vector<unsigned char> compressed;
-        uLong compressedSize = compressBound(pdfContent.size());
-        compressed.resize(compressedSize);
-
-        if (compress2(compressed.data(), &compressedSize,
-                     pdfContent.data(), pdfContent.size(), Z_BEST_COMPRESSION) != Z_OK) {
-            zip_close(zip);
-            result.success = false;
-            result.errorMessage = "Error en la compresión del PDF";
-            return result;
-        }
-
-        // Add compressed PDF to ZIP
+        // Add PDF directly to ZIP (ZIP will handle compression)
         fs::path inputFileName = fs::path(inputPath).filename();
-        std::string optimizedName = inputFileName.stem().string() + "_optimized.pdf";
-
-        zip_source_t *source = zip_source_buffer(zip, compressed.data(), compressedSize, 0);
-        if (zip_file_add(zip, optimizedName.c_str(), source, ZIP_FL_OVERWRITE) < 0) {
+        zip_source_t *source = zip_source_buffer(zip, pdfContent.data(), pdfContent.size(), 0);
+        if (zip_file_add(zip, inputFileName.string().c_str(), source, ZIP_FL_OVERWRITE) < 0) {
             zip_source_free(source);
             zip_close(zip);
             result.success = false;
-            result.errorMessage = "Error al agregar PDF optimizado al ZIP";
+            result.errorMessage = "Error al agregar PDF al ZIP";
             return result;
         }
 
@@ -277,7 +247,7 @@ CompressionResult PureCppCompressor::compressImage(const std::string &inputPath,
     try {
         std::string zipPath = outputPath;
         if (zipPath.find(".zip") == std::string::npos) {
-            zipPath = zipPath.substr(0, zipPath.find_last_of('.')) + "_optimized.zip";
+            zipPath = zipPath.substr(0, zipPath.find_last_of('.')) + ".zip";
         }
 
         int err = 0;
@@ -301,29 +271,14 @@ CompressionResult PureCppCompressor::compressImage(const std::string &inputPath,
                                                std::istreambuf_iterator<char>());
         imageFile.close();
 
-        // Compress image content
-        std::vector<unsigned char> compressed;
-        uLong compressedSize = compressBound(imageContent.size());
-        compressed.resize(compressedSize);
-
-        if (compress2(compressed.data(), &compressedSize,
-                     imageContent.data(), imageContent.size(), Z_BEST_COMPRESSION) != Z_OK) {
-            zip_close(zip);
-            result.success = false;
-            result.errorMessage = "Error en la compresión de la imagen";
-            return result;
-        }
-
-        // Add compressed image to ZIP
+        // Add image directly to ZIP (ZIP will handle compression)
         fs::path inputFileName = fs::path(inputPath).filename();
-        std::string optimizedName = inputFileName.stem().string() + "_optimized" + inputFileName.extension().string();
-
-        zip_source_t *source = zip_source_buffer(zip, compressed.data(), compressedSize, 0);
-        if (zip_file_add(zip, optimizedName.c_str(), source, ZIP_FL_OVERWRITE) < 0) {
+        zip_source_t *source = zip_source_buffer(zip, imageContent.data(), imageContent.size(), 0);
+        if (zip_file_add(zip, inputFileName.string().c_str(), source, ZIP_FL_OVERWRITE) < 0) {
             zip_source_free(source);
             zip_close(zip);
             result.success = false;
-            result.errorMessage = "Error al agregar imagen optimizada al ZIP";
+            result.errorMessage = "Error al agregar imagen al ZIP";
             return result;
         }
 

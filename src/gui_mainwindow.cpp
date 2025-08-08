@@ -253,22 +253,19 @@ void MainWindow::setupConnections()
 
 void MainWindow::addFiles()
 {
-    QMessageBox::information(this, "Debug", "Botón 'Agregar Archivos' fue presionado");
+    qDebug() << "addFiles() called";
 
-    // Ensure window is active and visible
-    this->raise();
-    this->activateWindow();
-    this->show();
-
-    // Create dialog with explicit parent and modal behavior
+    // Use non-native dialog to ensure it works on macOS
     QFileDialog *dialog = new QFileDialog(this);
     dialog->setWindowTitle("Seleccionar archivos para comprimir");
     dialog->setDirectory(QDir::homePath());
     dialog->setFileMode(QFileDialog::ExistingFiles);
     dialog->setNameFilter("Todos los archivos (*.*)");
     dialog->setModal(true);
+    dialog->setOption(QFileDialog::DontUseNativeDialog, true); // Force Qt dialog
 
-    // Make sure dialog is visible
+    // Make sure the dialog is visible
+    dialog->resize(600, 400);
     dialog->show();
     dialog->raise();
     dialog->activateWindow();
@@ -286,9 +283,11 @@ void MainWindow::addFiles()
             }
             updateStatus();
             QMessageBox::information(this, "Éxito", QString("Se agregaron %1 archivos").arg(files.size()));
+        } else {
+            QMessageBox::information(this, "Info", "No se seleccionaron archivos");
         }
     } else {
-        QMessageBox::information(this, "Info", "No se seleccionaron archivos");
+        qDebug() << "Dialog was cancelled";
     }
 
     dialog->deleteLater();
@@ -307,22 +306,19 @@ void MainWindow::clearFiles()
 
 void MainWindow::selectOutputDirectory()
 {
-    QMessageBox::information(this, "Debug", "Botón 'Seleccionar Directorio' fue presionado");
+    qDebug() << "selectOutputDirectory() called";
 
-    // Ensure window is active and visible
-    this->raise();
-    this->activateWindow();
-    this->show();
-
-    // Create dialog with explicit parent and modal behavior
+    // Use non-native dialog to ensure it works on macOS
     QFileDialog *dialog = new QFileDialog(this);
     dialog->setWindowTitle("Seleccionar directorio de salida");
     dialog->setDirectory(QDir::homePath());
     dialog->setFileMode(QFileDialog::Directory);
     dialog->setOption(QFileDialog::ShowDirsOnly, true);
     dialog->setModal(true);
+    dialog->setOption(QFileDialog::DontUseNativeDialog, true); // Force Qt dialog
 
-    // Make sure dialog is visible
+    // Make sure the dialog is visible
+    dialog->resize(600, 400);
     dialog->show();
     dialog->raise();
     dialog->activateWindow();
@@ -337,9 +333,11 @@ void MainWindow::selectOutputDirectory()
             m_outputPathLabel->setText("Directorio de salida: " + dir);
             updateStatus();
             QMessageBox::information(this, "Éxito", "Directorio seleccionado: " + dir);
+        } else {
+            QMessageBox::information(this, "Info", "No se seleccionó ningún directorio");
         }
     } else {
-        QMessageBox::information(this, "Info", "No se seleccionó ningún directorio");
+        qDebug() << "Directory dialog was cancelled";
     }
 
     dialog->deleteLater();
